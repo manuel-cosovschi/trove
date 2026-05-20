@@ -63,6 +63,7 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{margin:0;padding:0;height:100%;}
+html{background:var(--bg);}
 body{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,Roboto,Helvetica,Arial,sans-serif;
   background:var(--bg);
@@ -488,7 +489,7 @@ function renderToday(){
       : `<div class="muted tiny">No active tasks. Add objectives in Ventures or Goals to see them here.</div>`}
   </div>
 
-  <div class="grid2">
+  <div class="grid2" style="margin-bottom:14px">
     <div class="card" style="margin:0">
       <h3>Habits</h3>
       <div class="ring-wrap">
