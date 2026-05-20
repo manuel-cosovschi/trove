@@ -1,5 +1,5 @@
-/* Trove service worker — cache-first, fully offline. */
-const CACHE = 'trove-v2';
+/* Trove service worker — network-first for the app shell, cache fallback offline. */
+const CACHE = 'trove-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -24,19 +24,38 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
-  e.respondWith(
-    caches.match(e.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(e.request)
+  const url = new URL(e.request.url);
+  const isShell =
+    e.request.mode === 'navigate' ||
+    (url.origin === location.origin && /\/(index\.html)?$/.test(url.pathname));
+
+  if (isShell) {
+    // Network-first so new deploys are picked up; fall back to cache offline.
+    e.respondWith(
+      fetch(e.request)
         .then((res) => {
-          // Cache same-origin successful responses for next time.
-          if (res && res.status === 200 && new URL(e.request.url).origin === location.origin) {
+          if (res && res.status === 200) {
             const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(e.request, copy));
+            caches.open(CACHE).then((c) => c.put('./index.html', copy));
           }
           return res;
         })
-        .catch(() => caches.match('./index.html'));
+        .catch(() => caches.match(e.request).then((r) => r || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  // Cache-first for static assets.
+  e.respondWith(
+    caches.match(e.request).then((cached) => {
+      if (cached) return cached;
+      return fetch(e.request).then((res) => {
+        if (res && res.status === 200 && url.origin === location.origin) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(e.request, copy));
+        }
+        return res;
+      });
     })
   );
 });
